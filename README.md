@@ -1,3 +1,17 @@
+# Local build
+
+```
+pipenv install
+```
+
+# Running locally
+
+```
+pipenv run python zadmin.py
+
+pipenv run python zpublic.py
+```
+
 # Examples
 
 ## Getting decisions on all live features at once.
