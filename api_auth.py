@@ -52,7 +52,7 @@ class KeychainCredentialsOption(click.Option):
 
 
 # Options to decorate all commands using keychain credentials
-_api_options = [
+_admin_api_options = [
     click.option('--profile', help="Profile name used for persistent credentials"),
     click.option('--tenant-id', envvar='TENANT_ID', help="Zephr tenant ID", cls=KeychainCredentialsOption),
     click.option('--client-id', envvar='CLIENT_ID', help="Zephr API client key ID", cls=KeychainCredentialsOption),
@@ -60,10 +60,23 @@ _api_options = [
                  cls=KeychainCredentialsOption, hide_input=True),
 ]
 
+# Options to decorate all commands using keychain credentials
+_public_api_options = [
+    click.option('--profile', help="Profile name used for persistent credentials"),
+    click.option('--tenant-id', envvar='TENANT_ID', help="Zephr tenant ID", cls=KeychainCredentialsOption),
+]
 
-# Decorator used to add auth_options to any API command
-def api_command(func):
-    for option in reversed(_api_options):
+
+# Decorator used to add auth_options to any admin API command
+def admin_api_command(func):
+    for option in reversed(_admin_api_options):
+        func = option(func)
+    return func
+
+
+# Decorator used to add profile options for public API commands
+def public_api_command(func):
+    for option in reversed(_public_api_options):
         func = option(func)
     return func
 
