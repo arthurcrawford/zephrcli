@@ -29,6 +29,11 @@ The admin commands group require API key/secret credentials.
 
 # Examples
 
+List all product ids.
+```bash
+prp zephr.py admin list-products --profile dev | jq -r '.results[].id'
+```
+
 ## Getting decisions on all live features at once.
 
 ```bash

@@ -48,16 +48,17 @@ def do_get_admin(tenant_id, client_id, client_secret, path, query=""):
         print(r)
 
 
-def do_get_public(path, tenant_id, site_name, rule_type):
+def do_get_public(path, tenant_id, site_name, query="", cookies=None):
+    if cookies is None:
+        cookies = {}
     protocol = "https"
     stage = "cdn"
     host = f'{tenant_id}-{site_name}.{stage}.zephr.com'
-    query = f'ruleType={rule_type}' if rule_type else ''
     headers = ""
 
     url = f'{protocol}://{host}{path}?{query}'
 
-    r = requests.get(url, headers=headers)
+    r = requests.get(url, headers=headers, cookies=cookies)
     if r.ok:
         print(json.dumps(r.json(), indent=2))
     else:
@@ -92,7 +93,10 @@ def do_post_admin(path, body, cookies, tenant_id, client_id, client_secret):
     url = f'{protocol}://{host}{path}'
 
     r = requests.post(url, headers=headers, json=body, cookies=cookies)
-    print(json.dumps(r.json(), indent=2))
+    if r.ok:
+        print(json.dumps(r.json(), indent=2))
+    else:
+        print(r)
 
 
 def do_post_public(path, body, cookies, tenant_id, site_name):
@@ -132,7 +136,7 @@ def do_put(tenant_id, client_id, client_secret, path, body={}, extra_headers={})
         print(r)
 
 
-def do_delete(tenant_id, client_id, client_secret, path, query=""):
+def do_delete_admin(tenant_id, client_id, client_secret, path, query=""):
     protocol = "https"
     host = f"{tenant_id}.api.zephr.com"
     body_string = ""
@@ -146,6 +150,23 @@ def do_delete(tenant_id, client_id, client_secret, path, query=""):
                'Content-Type': 'application/json'}
 
     r = requests.delete(url, headers=headers)
+    if r.ok:
+        print(json.dumps(r.json(), indent=2))
+    else:
+        print(r)
+
+
+def do_delete_public(path, tenant_id, site_name, cookies=None):
+    if cookies is None:
+        cookies = {}
+    protocol = "https"
+    stage = "cdn"
+    host = f'{tenant_id}-{site_name}.{stage}.zephr.com'
+    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+
+    url = f'{protocol}://{host}{path}'
+
+    r = requests.delete(url, headers=headers, cookies=cookies)
     if r.ok:
         print(json.dumps(r.json(), indent=2))
     else:
@@ -202,14 +223,17 @@ def cli():
 
 @click.command()
 @admin_api_command
-@click.option('-c', '--cpn')
-def list_users(profile, tenant_id, client_id, client_secret, cpn):
+@click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
+def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
-    if cpn is None:
-        do_get_admin(tenant_id, client_id, client_secret, "/v3/users")
-    else:
-        do_get_admin(tenant_id, client_id, client_secret, "/v3/users", query=f'foreign_key.CPN={cpn}')
 
+    query = ''
+    if foreign_key is not None:
+        key, value = foreign_key
+        query = f'foreign_key.{key}={value}'
+
+    do_get_admin(tenant_id, client_id, client_secret, "/v3/users",
+                 query=query)
 
 @click.command()
 @admin_api_command
@@ -221,8 +245,10 @@ def get_user(profile, tenant_id, client_id, client_secret, user_id):
 
 @click.command()
 @admin_api_command
+@click.option('-j', '--jwt')
+@click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('email')
-def create_session(profile, tenant_id, client_id, client_secret, email):
+def create_session(profile, tenant_id, client_id, client_secret, jwt, email):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
     body = {
         "identifiers": {
@@ -230,7 +256,26 @@ def create_session(profile, tenant_id, client_id, client_secret, email):
         }
     }
     cookies = {}
+
+    if jwt is not None:
+        # body['jwt'] = jwt
+        # Also add to cookies as not certain that jwt in the body works correctly
+        cookies = {'blaize_jwt': jwt}
+
     do_post_admin("/v3/sessions", body, cookies, tenant_id, client_id, client_secret)
+
+
+@click.command(help="List sessions for the given user")
+@admin_api_command
+# @click.option('-j', '--jwt')
+# @click.option('-z', '--session-id', help='ID of the requesting session')
+@click.option('-u', '--user-id', required=True, help='Unique ID of the user')
+def list_user_sessions(profile, tenant_id, client_id, client_secret, user_id):
+    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+
+    # https://{tenantId}.api.zephr.com/v3/users/{user_id}/sessions
+    do_get_admin(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret,
+                 path=f'/v4/users/{user_id}/sessions')
 
 
 @click.command()
@@ -274,7 +319,7 @@ def add_user_to_account(profile, tenant_id, client_id, client_secret, user_id, a
 @click.option('-a', '--account-id', required=True, help='The ID of the company account')
 def remove_user_from_account(profile, tenant_id, client_id, client_secret, user_id, account_id):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
-    do_delete(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}/users/{user_id}")
+    do_delete_admin(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}/users/{user_id}")
 
 
 @click.command(help='Delete a user')
@@ -282,7 +327,7 @@ def remove_user_from_account(profile, tenant_id, client_id, client_secret, user_
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 def delete_user(profile, tenant_id, client_id, client_secret, user_id):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
-    do_delete(tenant_id, client_id, client_secret, f"/v3/users/{user_id}")
+    do_delete_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}")
 
 
 @click.command()
@@ -348,7 +393,7 @@ def get_company(profile, tenant_id, client_id, client_secret, company_id):
 @click.argument('company-id')
 def delete_company(profile, tenant_id, client_id, client_secret, company_id):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
-    do_delete(tenant_id, client_id, client_secret, f"/v3/companies/{company_id}")
+    do_delete_admin(tenant_id, client_id, client_secret, f"/v3/companies/{company_id}")
 
 
 @click.command()
@@ -436,7 +481,40 @@ def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
               type=click.Choice(['html', 'json', 'sdk', 'browser'], case_sensitive=False))
 def list_rules(profile, tenant_id, site_name, rule_type):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
-    do_get_public("/zephr/features", tenant_id, site_name, rule_type)
+    query = f'ruleType={rule_type}' if rule_type else ''
+    do_get_public("/zephr/features", tenant_id, site_name, query)
+
+
+@cli.command(help='List sessions for the authenticated user')
+@public_api_command
+@click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
+@click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
+@click.option('-z', '--session-id', help='ID of the requesting session')
+def list_sessions(profile, tenant_id, site_name, jwt, session_id):
+    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    cookies = {}
+    if jwt is not None:
+        cookies['blaize_jwt'] = jwt
+    if session_id is not None:
+        cookies['blaize_session'] = session_id
+    do_get_public(path="/zephr/public/sessions/v1/sessions", tenant_id=tenant_id,
+                  site_name=site_name, cookies=cookies)
+
+
+@cli.command(help='Delete session for the authenticated user')
+@public_api_command
+@click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
+@click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
+@click.option('-z', '--session-id', required=True, help='ID of the requesting session')
+def delete_session(profile, tenant_id, site_name, jwt, session_id):
+    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    cookies = {}
+    if jwt is not None:
+        cookies['blaize_jwt'] = jwt
+    if session_id is not None:
+        cookies['blaize_session'] = session_id
+    do_delete_public(path=f"/zephr/public/sessions/v1/sessions/{session_id}",
+                     tenant_id=tenant_id, site_name=site_name, cookies=cookies)
 
 
 @cli.command(help='Invoke rule(s) and get decisions')
@@ -445,8 +523,10 @@ def list_rules(profile, tenant_id, site_name, rule_type):
 @click.option('-j', '--jwt')
 @click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
 @click.option('-i', '--ip', help='Specify IP address of caller: default = actual IP')
+@click.option('-u', '--user-agent', help='Specify a different user agent header')
+@click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('features', nargs=-1)
-def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, features):
+def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, session_id, features):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
     body = {'features': []}
     cookies = {}
@@ -456,10 +536,17 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, features):
     if ip is not None:
         body['ip'] = ip
 
+    if session_id is not None:
+        body['session'] = session_id
+
     if jwt is not None:
         body['jwt'] = jwt
         # Also add to cookies as not certain that jwt in the body works correctly
         cookies = {'blaize_jwt': jwt}
+
+    if user_agent is not None:
+        #     body['userAgent'] = user_agent
+        cookies = {'User-Agent': user_agent}
 
     if foreign_key is not None:
         key, value = foreign_key
@@ -470,7 +557,6 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, features):
 
 @cli.command(help='Register a new user')
 @public_api_command
-@click.option('-t', '--tenant-id', required=True, help='Name/Id of the Zephr tenant')
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-e', '--email', required=True, help='Email of the user to register')
 @click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
@@ -496,6 +582,7 @@ admin.add_command(login)
 admin.add_command(logout)
 admin.add_command(list_products)
 admin.add_command(list_users)
+admin.add_command(list_user_sessions)
 admin.add_command(get_user)
 admin.add_command(create_session)
 admin.add_command(get_user_grants)
