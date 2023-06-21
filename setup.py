@@ -2,12 +2,12 @@ from setuptools import setup
 import os
 
 with open(os.path.join('.', 'VERSION')) as version_file:
-    __version__ = version_file.read().strip()
+    version = version_file.read().strip()
 
 setup(
     name='zephr',
-    version=__version__,
-    py_modules=['zephr', 'api_auth'],
+    version=version,
+    py_modules=['zephr', 'api_auth', 'config'],
     install_requires=[
         'click',
         'requests',

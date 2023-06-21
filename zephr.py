@@ -2,18 +2,15 @@ import hashlib
 import json
 import time
 import uuid
-from pathlib import Path
-
 import click
 import requests
 import os
 
 from api_auth import admin_api_command, public_api_command, login, logout
 
-_app_name = Path(__file__).stem
-
 with open(os.path.join('.', 'VERSION')) as version_file:
-    __version__ = version_file.read().strip()
+    version = version_file.read().strip()
+
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
@@ -183,11 +180,8 @@ def do_delete_public(path, tenant_id, site_name, cookies=None):
 
 
 @click.group()
-@click.version_option(version=__version__)
-@click.pass_context
-def cli(ctx):
-    if ctx.obj is None:
-        ctx.obj = {'app_name': _app_name}
+@click.version_option(version=version)
+def cli():
     pass
 
 
@@ -612,9 +606,11 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
 def admin():
     pass
 
+
 @click.group(help='Public commands')
 def public():
     pass
+
 
 # Add admin API subcommands to the admin group
 admin.add_command(login)
@@ -662,4 +658,4 @@ cli.add_command(admin)
 cli.add_command(public)
 
 if __name__ == '__main__':
-    cli(obj={'app_name': _app_name})
+    cli()
