@@ -179,9 +179,10 @@ def do_delete_public(path, tenant_id, site_name, cookies=None):
 
 
 @click.group()
-def cli(obj=None):
-    if obj is None:
-        obj = {'app_name': _app_name}
+@click.pass_context
+def cli(ctx):
+    if ctx.obj is None:
+        ctx.obj = {'app_name': _app_name}
 
 
 # # TODO - needs testing - need to validate a request that requires a valid session id
