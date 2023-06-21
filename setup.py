@@ -1,7 +1,8 @@
 from setuptools import setup
-import os
 
-with open(os.path.join('.', 'VERSION')) as version_file:
+from config import VERSION_FILE
+
+with open(VERSION_FILE) as version_file:
     version = version_file.read().strip()
 
 setup(

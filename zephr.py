@@ -4,11 +4,11 @@ import time
 import uuid
 import click
 import requests
-import os
 
 from api_auth import admin_api_command, public_api_command, login, logout
+from config import VERSION_FILE
 
-with open(os.path.join('.', 'VERSION')) as version_file:
+with open(VERSION_FILE) as version_file:
     version = version_file.read().strip()
 
 
