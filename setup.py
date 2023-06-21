@@ -9,6 +9,7 @@ setup(
     name='zephr',
     version=version,
     py_modules=['zephr', 'api_auth', 'config'],
+    include_package_data=True,
     install_requires=[
         'click',
         'requests',
