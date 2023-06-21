@@ -2,8 +2,8 @@ from setuptools import setup
 
 setup(
     name='zephr',
-    version='0.1.2',
-    py_modules=['zephr', 'api_auth.py'],
+    version='0.1.3',
+    py_modules=['zephr', 'api_auth'],
     install_requires=[
         'click',
         'requests',
