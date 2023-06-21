@@ -3,6 +3,7 @@ import click
 import json
 import pwinput
 from click import ClickException
+from keyring.backends.macOS import Keyring
 from keyring.errors import PasswordDeleteError
 
 
@@ -69,6 +70,9 @@ _public_api_options = [
 
 # Decorator used to add auth_options to any admin API command
 def admin_api_command(func):
+    # Hardcode backend to macOS for the moment; otherwise keyring warns of missing config file
+    keyring.set_keyring(Keyring())
+
     for option in reversed(_admin_api_options):
         func = option(func)
     return func

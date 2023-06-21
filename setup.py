@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='zephr',
-    version='0.1.6',
+    version='0.1.7',
     py_modules=['zephr', 'api_auth'],
     install_requires=[
         'click',
