@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='zephr',
-    version='0.1',
+    version='0.1.1',
     py_modules=['zephr'],
     install_requires=[
         'click',
