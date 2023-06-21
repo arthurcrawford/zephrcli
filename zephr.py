@@ -9,6 +9,7 @@ import requests
 
 from api_auth import admin_api_command, public_api_command, login, logout
 
+_app_name = Path(__file__).stem
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
@@ -178,8 +179,9 @@ def do_delete_public(path, tenant_id, site_name, cookies=None):
 
 
 @click.group()
-def cli():
-    pass
+def cli(obj=None):
+    if obj is None:
+        obj = {'app_name': _app_name}
 
 
 # # TODO - needs testing - need to validate a request that requires a valid session id
@@ -651,8 +653,6 @@ public.add_command(list_sessions)
 # Add subcommands to CLI root
 cli.add_command(admin)
 cli.add_command(public)
-
-_app_name = Path(__file__).stem
 
 if __name__ == '__main__':
     cli(obj={'app_name': _app_name})
