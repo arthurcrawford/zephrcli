@@ -99,11 +99,15 @@ def do_post_admin(path, body, cookies, tenant_id, client_id, client_secret):
         print(r)
 
 
-def do_post_public(path, body, cookies, tenant_id, site_name):
+def do_post_public(path, body, cookies, tenant_id, site_name, extra_headers=None):
+    if extra_headers is None:
+        extra_headers = {}
     protocol = "https"
     stage = "cdn"
     host = f'{tenant_id}-{site_name}.{stage}.zephr.com'
-    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+    headers = {'Content-Type': 'application/json',
+               'Accept': 'application/json'}
+    headers.update(extra_headers)
 
     url = f'{protocol}://{host}{path}'
 
@@ -221,9 +225,9 @@ def cli():
 #     do_get(f"/v3/admin/sessions/{admin_session_id}")
 
 
-@click.command()
+@click.command(help='List users, or select by foreign key query')
 @admin_api_command
-@click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
+@click.option('-f', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
 def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
 
@@ -234,6 +238,7 @@ def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
 
     do_get_admin(tenant_id, client_id, client_secret, "/v3/users",
                  query=query)
+
 
 @click.command()
 @admin_api_command
@@ -474,7 +479,7 @@ def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/bundles/{bundle_id}")
 
 
-@cli.command(help='List rules (aka Features)')
+@click.command(help='List rules (aka Features)')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-r', '--rule-type', required=True,
@@ -485,7 +490,7 @@ def list_rules(profile, tenant_id, site_name, rule_type):
     do_get_public("/zephr/features", tenant_id, site_name, query)
 
 
-@cli.command(help='List sessions for the authenticated user')
+@click.command(help='List sessions for the authenticated user')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
@@ -501,7 +506,7 @@ def list_sessions(profile, tenant_id, site_name, jwt, session_id):
                   site_name=site_name, cookies=cookies)
 
 
-@cli.command(help='Delete session for the authenticated user')
+@click.command(help='Delete session for the authenticated user')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
@@ -517,19 +522,35 @@ def delete_session(profile, tenant_id, site_name, jwt, session_id):
                      tenant_id=tenant_id, site_name=site_name, cookies=cookies)
 
 
-@cli.command(help='Invoke rule(s) and get decisions')
+@click.command(help='Delete all other sessions except this one')
+@public_api_command
+@click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
+@click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
+@click.option('-z', '--session-id', required=True, help='ID of the requesting session')
+def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
+    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    cookies = {'blaize_jwt': jwt,
+               'blaize_session': session_id}
+    do_delete_public(path=f"/zephr/public/sessions/v1/sessions?except-current",
+                     tenant_id=tenant_id, site_name=site_name, cookies=cookies)
+
+
+# https://{your-domain}/zephr/public/sessions/v1/sessions&except-current
+
+@click.command(help='Invoke rule(s) and get decisions')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-j', '--jwt')
 @click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
 @click.option('-i', '--ip', help='Specify IP address of caller: default = actual IP')
-@click.option('-u', '--user-agent', help='Specify a different user agent header')
+@click.option('-u', '--user-agent', help='Specify the User-Agent header')
 @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('features', nargs=-1)
 def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, session_id, features):
     click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
     body = {'features': []}
     cookies = {}
+    headers = {}
     for f_id in features:
         body['features'].append({'slug': f_id})
 
@@ -545,17 +566,23 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, sess
         cookies = {'blaize_jwt': jwt}
 
     if user_agent is not None:
-        #     body['userAgent'] = user_agent
-        cookies = {'User-Agent': user_agent}
+        # Some versions of Zephr documentation say you should do this which doesn't work
+        # body['UserAgent'] = user_agent
+        # This doesn't seem to work either
+        # headers.update({'User-Agent': user_agent})
+        # Only this, un-documented method seems to work
+        body['user_agent'] = user_agent
 
     if foreign_key is not None:
         key, value = foreign_key
         body['foreign_keys'] = {key: value}
 
-    do_post_public('/zephr/decide', body, cookies, tenant_id, site_name)
+    do_post_public(path='/zephr/decide', body=body,
+                   cookies=cookies, tenant_id=tenant_id, site_name=site_name,
+                   extra_headers=headers)
 
 
-@cli.command(help='Register a new user')
+@click.command(help='Register a new user')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-e', '--email', required=True, help='Email of the user to register')
@@ -572,10 +599,13 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
     do_post_public('/blaize/register', body, cookies, tenant_id, site_name)
 
 
-@click.group(help='Admin commands needing API keys')
+@click.group(help='Admin commands that require API keys')
 def admin():
     pass
 
+@click.group(help='Public commands')
+def public():
+    pass
 
 # Add admin API subcommands to the admin group
 admin.add_command(login)
@@ -611,8 +641,16 @@ admin.add_command(list_entitlements)
 admin.add_command(list_bundles)
 admin.add_command(get_bundle)
 
+public.add_command(register_user)
+public.add_command(decide)
+public.add_command(delete_other_sessions)
+public.add_command(delete_session)
+public.add_command(list_rules)
+public.add_command(list_sessions)
+
 # Add subcommands to CLI root
 cli.add_command(admin)
+cli.add_command(public)
 
 _app_name = Path(__file__).stem
 
