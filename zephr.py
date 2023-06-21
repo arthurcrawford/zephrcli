@@ -6,10 +6,14 @@ from pathlib import Path
 
 import click
 import requests
+import os
 
 from api_auth import admin_api_command, public_api_command, login, logout
 
 _app_name = Path(__file__).stem
+
+with open(os.path.join('.', 'VERSION')) as version_file:
+    __version__ = version_file.read().strip()
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
@@ -179,10 +183,12 @@ def do_delete_public(path, tenant_id, site_name, cookies=None):
 
 
 @click.group()
+@click.version_option(version=__version__)
 @click.pass_context
 def cli(ctx):
     if ctx.obj is None:
         ctx.obj = {'app_name': _app_name}
+    pass
 
 
 # # TODO - needs testing - need to validate a request that requires a valid session id
