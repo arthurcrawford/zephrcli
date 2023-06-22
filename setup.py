@@ -3,7 +3,8 @@ from setuptools import setup
 setup(
     name='zephr',
     version='0.1.13',
-    modules=['api_auth', 'config', 'zephr'],
+    packages=['zephrcli'],
+    data_files=[('zephrcli', ['VERSION'])],
     install_requires=[
         'click',
         'requests',
