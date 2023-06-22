@@ -8,8 +8,9 @@ import importlib.resources
 
 from .api_auth import admin_api_command, public_api_command, login, logout
 
-# Load version from VERSION file
+# Load VERSION as a resource because we may not have access to file system
 version = importlib.resources.read_text(__package__, "VERSION")
+
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
@@ -599,25 +600,6 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
         body['foreign_keys'] = {key: value}
 
     do_post_public('/blaize/register', body, cookies, tenant_id, site_name)
-
-import os
-
-@cli.command()
-def test():
-
-    cwd = f'OS Current WD: {os.getcwd()}'
-
-    files = [f for f in os.listdir('.') if os.path.isfile(f)]
-    for f in files:
-        print(f)
-
-    try:
-        test = importlib.resources.read_text(__package__, "TEST")
-    except FileNotFoundError as fnfe:
-        print(fnfe)
-
-    click.echo(f'Package: {__package__}')
-    click.echo(f'Version: {version}')
 
 
 @click.group(help='Admin commands that require API keys')
