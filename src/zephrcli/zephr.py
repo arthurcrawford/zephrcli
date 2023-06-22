@@ -605,6 +605,8 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
 @cli.command()
 def test():
     click.echo(f'Package: {__package__}')
+    version = importlib.resources.read_text(__package__, "VERSION")
+    click.echo(f'Version: {version}')
 
 
 @click.group(help='Admin commands that require API keys')
