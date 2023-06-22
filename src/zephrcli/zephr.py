@@ -67,20 +67,6 @@ def do_get_public(path, tenant_id, site_name, query="", cookies=None):
         print(r)
 
 
-# def do_post(tenant_id, client_id, client_secret, path, body={}, extra_headers={}):
-#     protocol = "https"
-#     host = f'{tenant_id}.api.zephr.com'
-#     body_string = json.dumps(body)
-#     method = "POST"
-#     query = ""
-#     authorization_header_value = create_zephr_authorization_header(body_string, method, path, query)
-#     headers = {'Authorization': authorization_header_value,
-#                'Content-Type': 'application/json'}
-#     headers.update(extra_headers)
-#
-#     url = f'{protocol}://{host}{path}'
-#     return requests.post(url, headers=headers, json=body)
-
 def do_post_admin(path, body, cookies, tenant_id, client_id, client_secret):
     protocol = "https"
     host = f'{tenant_id}.api.zephr.com'
@@ -232,7 +218,7 @@ def cli():
 @admin_api_command
 @click.option('-f', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
 def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
 
     query = ''
     if foreign_key is not None:
@@ -243,11 +229,15 @@ def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
                  query=query)
 
 
+def debug(profile):
+    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+
+
 @click.command()
 @admin_api_command
 @click.argument('user-id')
 def get_user(profile, tenant_id, client_id, client_secret, user_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}")
 
 
@@ -257,7 +247,7 @@ def get_user(profile, tenant_id, client_id, client_secret, user_id):
 @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('email')
 def create_session(profile, tenant_id, client_id, client_secret, jwt, email):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     body = {
         "identifiers": {
             "email_address": f"{email}"
@@ -279,7 +269,7 @@ def create_session(profile, tenant_id, client_id, client_secret, jwt, email):
 # @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.option('-u', '--user-id', required=True, help='Unique ID of the user')
 def list_user_sessions(profile, tenant_id, client_id, client_secret, user_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
 
     # https://{tenantId}.api.zephr.com/v3/users/{user_id}/sessions
     do_get_admin(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret,
@@ -290,7 +280,7 @@ def list_user_sessions(profile, tenant_id, client_id, client_secret, user_id):
 @admin_api_command
 @click.argument('user-id')
 def get_user_grants(profile, tenant_id, client_id, client_secret, user_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}/grants")
 
 
@@ -298,7 +288,7 @@ def get_user_grants(profile, tenant_id, client_id, client_secret, user_id):
 @click.command()
 @admin_api_command
 def list_account_users(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     # NOTE - rather than return empty list - this returns 404 if no results
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/accounts/users")
 
@@ -307,7 +297,7 @@ def list_account_users(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('user-id')
 def list_user_accounts(profile, tenant_id, client_id, client_secret, user_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     # NOTE - rather than return empty list - this returns 404 if no results
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}/accounts")
 
@@ -317,7 +307,7 @@ def list_user_accounts(profile, tenant_id, client_id, client_secret, user_id):
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 @click.option('-a', '--account-id', required=True, help='The ID of the company account')
 def add_user_to_account(profile, tenant_id, client_id, client_secret, user_id, account_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_put(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}/users/{user_id}")
 
 
@@ -326,7 +316,7 @@ def add_user_to_account(profile, tenant_id, client_id, client_secret, user_id, a
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 @click.option('-a', '--account-id', required=True, help='The ID of the company account')
 def remove_user_from_account(profile, tenant_id, client_id, client_secret, user_id, account_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_delete_admin(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}/users/{user_id}")
 
 
@@ -334,35 +324,35 @@ def remove_user_from_account(profile, tenant_id, client_id, client_secret, user_
 @admin_api_command
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 def delete_user(profile, tenant_id, client_id, client_secret, user_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_delete_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}")
 
 
 @click.command()
 @admin_api_command
 def list_schema_users(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/schema/users")
 
 
 @click.command()
 @admin_api_command
 def list_unclaimed_gifts(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/gift")
 
 
 @click.command()
 @admin_api_command
 def list_request_rules(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/request-rules")
 
 
 @click.command()
 @admin_api_command
 def list_accounts(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/accounts")
 
 
@@ -370,21 +360,21 @@ def list_accounts(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('account-id')
 def get_account(profile, tenant_id, client_id, client_secret, account_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}")
 
 
 @click.command()
 @admin_api_command
 def list_feature_rules(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/feature-rules")
 
 
 @click.command()
 @admin_api_command
 def list_companies(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/companies")
 
 
@@ -392,7 +382,7 @@ def list_companies(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('company-id')
 def get_company(profile, tenant_id, client_id, client_secret, company_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/companies/{company_id}")
 
 
@@ -400,77 +390,77 @@ def get_company(profile, tenant_id, client_id, client_secret, company_id):
 @admin_api_command
 @click.argument('company-id')
 def delete_company(profile, tenant_id, client_id, client_secret, company_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_delete_admin(tenant_id, client_id, client_secret, f"/v3/companies/{company_id}")
 
 
 @click.command()
 @admin_api_command
 def list_products(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/products")
 
 
 @click.command()
 @admin_api_command
 def list_meters(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/meters")
 
 
 @click.command()
 @admin_api_command
 def list_static(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/static")
 
 
 @click.command()
 @admin_api_command
 def list_webhooks(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/webhooks")
 
 
 @click.command()
 @admin_api_command
 def list_schema_users(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/schema/users")
 
 
 @click.command()
 @admin_api_command
 def list_cache_configurations(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/cache-configurations")
 
 
 @click.command()
 @admin_api_command
 def get_configuration(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/configuration")
 
 
 @click.command()
 @admin_api_command
 def list_credits(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/credits")
 
 
 @click.command()
 @admin_api_command
 def list_entitlements(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/entitlements")
 
 
 @click.command()
 @admin_api_command
 def list_bundles(profile, tenant_id, client_id, client_secret):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/bundles")
 
 
@@ -478,7 +468,7 @@ def list_bundles(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('bundle-id')
 def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/bundles/{bundle_id}")
 
 
@@ -488,7 +478,7 @@ def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
 @click.option('-r', '--rule-type', required=True,
               type=click.Choice(['html', 'json', 'sdk', 'browser'], case_sensitive=False))
 def list_rules(profile, tenant_id, site_name, rule_type):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     query = f'ruleType={rule_type}' if rule_type else ''
     do_get_public("/zephr/features", tenant_id, site_name, query)
 
@@ -499,7 +489,7 @@ def list_rules(profile, tenant_id, site_name, rule_type):
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
 @click.option('-z', '--session-id', help='ID of the requesting session')
 def list_sessions(profile, tenant_id, site_name, jwt, session_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     cookies = {}
     if jwt is not None:
         cookies['blaize_jwt'] = jwt
@@ -515,7 +505,7 @@ def list_sessions(profile, tenant_id, site_name, jwt, session_id):
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
 @click.option('-z', '--session-id', required=True, help='ID of the requesting session')
 def delete_session(profile, tenant_id, site_name, jwt, session_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     cookies = {}
     if jwt is not None:
         cookies['blaize_jwt'] = jwt
@@ -531,7 +521,7 @@ def delete_session(profile, tenant_id, site_name, jwt, session_id):
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
 @click.option('-z', '--session-id', required=True, help='ID of the requesting session')
 def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     cookies = {'blaize_jwt': jwt,
                'blaize_session': session_id}
     do_delete_public(path=f"/zephr/public/sessions/v1/sessions?except-current",
@@ -550,7 +540,7 @@ def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
 @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('features', nargs=-1)
 def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, session_id, features):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     body = {'features': []}
     cookies = {}
     headers = {}
@@ -591,7 +581,7 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, sess
 @click.option('-e', '--email', required=True, help='Email of the user to register')
 @click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
 def register_user(profile, tenant_id, site_name, email, foreign_key):
-    click.echo(click.style(f'Using profile: {profile}', fg='green'), err=True)
+    debug(profile)
     body = {'identifiers': {'email_address': email}}
     cookies = {}
 

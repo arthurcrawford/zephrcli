@@ -1,3 +1,18 @@
+# Installation
+
+# Example Usage
+
+List SDK rules.
+
+```bash
+zephr public list-rules --profile dev -s ac-test-site -r sdk | jq -r '.[].id'
+```
+
+List users.  (TODO paging implementation required)  
+```bash
+zephr admin list-users --profile dev | jq -r '.results[].identifiers.email_address'
+```
+
 # Local build
 
 ```
