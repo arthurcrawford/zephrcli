@@ -5,6 +5,7 @@ setup(
     version='0.1.13',
     package_dir={'':'src'},
     packages=['zephrcli'],
+    package_data={'zephrcli': ['VERSION']},
     install_requires=[
         'click',
         'requests',
