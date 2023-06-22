@@ -1,9 +1,9 @@
 from setuptools import setup
-import importlib.resources
+#import importlib.resources
 
 # Load version from VERSION file
 #version = importlib.resources.read_text('zephrcli', "VERSION")
-version = 0.1.15
+version = '0.1.16'
 print(f'Setup.py - Version: {version}')
 
 setup(
