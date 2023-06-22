@@ -1,15 +1,9 @@
 from setuptools import setup
 
-from config import VERSION_FILE
-
-with open(VERSION_FILE) as version_file:
-    version = version_file.read().strip()
-
 setup(
     name='zephr',
-    version=version,
-    py_modules=['zephr', 'api_auth', 'config'],
-    include_package_data=True,
+    version='0.1.13',
+    modules=['api_auth', 'config', 'zephr'],
     install_requires=[
         'click',
         'requests',
