@@ -3,13 +3,13 @@ import importlib.resources
 
 # Load version from VERSION file
 #version = importlib.resources.read_text('zephrcli', "VERSION")
-version = '0.1.17'
+version = '0.1.18'
 print(f'Setup.py - Version: {version}')
 
-try:
-    test = importlib.resources.read_text(__package__, "TEST")
-except FileNotFoundError as fnfe:
-    print(fnfe)
+# try:
+#     test = importlib.resources.read_text(__package__, "TEST")
+# except FileNotFoundError as fnfe:
+#     print(fnfe)
 
 
 setup(
