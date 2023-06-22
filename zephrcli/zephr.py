@@ -4,13 +4,12 @@ import time
 import uuid
 import click
 import requests
+import importlib.resources
 
 from api_auth import admin_api_command, public_api_command, login, logout
-from config import VERSION_FILE
+import config
 
-with open(VERSION_FILE) as version_file:
-    version = version_file.read().strip()
-
+version = importlib.resources.read_text("zephrcli", "VERSION")
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
