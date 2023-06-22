@@ -603,6 +603,11 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
 
 @cli.command()
 def test():
+    try:
+        test = importlib.resources.read_text(__package__, "TEST")
+    except FileNotFoundError as fnfe:
+        print(fnfe)
+
     click.echo(f'Package: {__package__}')
     click.echo(f'Version: {version}')
 
