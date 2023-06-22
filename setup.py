@@ -1,9 +1,8 @@
 from setuptools import setup
 
 setup(
-    name='zephr',
+    name='zephrcli',
     version='0.1.13',
-    packages=['zephrcli'],
     install_requires=[
         'click',
         'requests',
