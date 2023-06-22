@@ -3,7 +3,7 @@ import importlib.resources
 
 # Load version from VERSION file
 #version = importlib.resources.read_text('zephrcli', "VERSION")
-version = '0.1.16'
+version = '0.1.17'
 print(f'Setup.py - Version: {version}')
 
 try:
