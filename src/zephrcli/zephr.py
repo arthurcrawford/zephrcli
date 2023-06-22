@@ -6,7 +6,7 @@ import click
 import requests
 import importlib.resources
 
-from api_auth import admin_api_command, public_api_command, login, logout
+from .api_auth import admin_api_command, public_api_command, login, logout
 
 # version = importlib.resources.read_text(__package__, "VERSION")
 version = "0.1.13"

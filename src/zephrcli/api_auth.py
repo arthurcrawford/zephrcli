@@ -4,7 +4,7 @@ import json
 import pwinput
 from keyring.backends.macOS import Keyring
 from keyring.errors import PasswordDeleteError
-from config import app_name
+from .config import app_name
 
 
 # Custom click.Option type that prompts for value only if value is None
