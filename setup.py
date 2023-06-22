@@ -1,8 +1,12 @@
 from setuptools import setup
+import importlib.resources
+
+# Load version from VERSION file
+version = importlib.resources.read_text('zephrcli', "VERSION")
 
 setup(
     name='zephrcli',
-    version='0.1.13',
+    version=version,
     package_dir={'':'src'},
     packages=['zephrcli'],
     package_data={'zephrcli': ['VERSION']},

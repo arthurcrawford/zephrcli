@@ -8,9 +8,8 @@ import importlib.resources
 
 from .api_auth import admin_api_command, public_api_command, login, logout
 
-# version = importlib.resources.read_text(__package__, "VERSION")
-version = "0.1.13"
-
+# Load version from VERSION file
+version = importlib.resources.read_text(__package__, "VERSION")
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
@@ -605,7 +604,6 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
 @cli.command()
 def test():
     click.echo(f'Package: {__package__}')
-    version = importlib.resources.read_text(__package__, "VERSION")
     click.echo(f'Version: {version}')
 
 
