@@ -4,9 +4,10 @@ import os
 
 # Load version from VERSION file
 # version = importlib.resources.read_text('zephrcli', "VERSION")
-version = '0.1.21'
+version = '0.1.22'
 print(f'Setup.py - Version: {version}')
 print(f'Setup.py - CWD: {os.getcwd()}')
+print(f'Setup.py - __file__: {__file__}')
 
 try:
     test = importlib.resources.read_text('zephrcli', "VERSION")
