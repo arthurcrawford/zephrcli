@@ -7,9 +7,10 @@ import requests
 import importlib.resources
 
 from api_auth import admin_api_command, public_api_command, login, logout
-import config
 
-version = importlib.resources.read_text("zephrcli", "VERSION")
+# version = importlib.resources.read_text(__package__, "VERSION")
+version = "0.1.13"
+
 
 def sign_zephr_request(secret_key, body, path, query, method, timestamp, nonce):
     message = f'{secret_key}{body}{path}{query}{method}{timestamp}{nonce}'
@@ -599,6 +600,11 @@ def register_user(profile, tenant_id, site_name, email, foreign_key):
         body['foreign_keys'] = {key: value}
 
     do_post_public('/blaize/register', body, cookies, tenant_id, site_name)
+
+
+@cli.command()
+def test():
+    click.echo(f'Package: {__package__}')
 
 
 @click.group(help='Admin commands that require API keys')
