@@ -4,7 +4,7 @@ import os
 
 # Load version from VERSION file
 # version = importlib.resources.read_text('zephrcli', "VERSION")
-version = '0.1.23'
+version = '0.1.24'
 print(f'Setup.py - Version: {version}')
 print(f'Setup.py - CWD: {os.getcwd()}')
 print(f'Setup.py - __file__: {__file__}')
@@ -13,6 +13,10 @@ print(f'Setup.py - ROOT_DIR: {ROOT_DIR}')
 VERSION_PATH = os.path.join(ROOT_DIR, 'src/zephrcli')
 print(f'Setup.py - ROOT_DIR: {VERSION_PATH}')
 try:
+    with open(os.path.join(VERSION_PATH, 'VERSION')) as version_file:
+        version_from_file = version_file.read().strip()
+    print(f'Setup.py - Version from file: {version_from_file}')
+    # No packages yet so can't do this
     test = importlib.resources.read_text('zephrcli', "VERSION")
 except Exception as e:
     raise 'An error occurred loading file'
