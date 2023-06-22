@@ -1,5 +1,5 @@
 from setuptools import setup
-import importlib.resources
+# import importlib.resources
 import os
 
 # Load version from VERSION file
@@ -16,7 +16,7 @@ try:
     with open(os.path.join(VERSION_PATH, 'VERSION')) as version_file:
         version = version_file.read().strip()
     # No packages yet so can't do this
-    test = importlib.resources.read_text('zephrcli', "VERSION")
+    # test = importlib.resources.read_text('zephrcli', "VERSION")
 except Exception as e:
     raise 'An error occurred reading VERSION file'
 print(f'Setup.py - Version: {version}')
