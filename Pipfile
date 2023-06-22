@@ -13,7 +13,7 @@ pwinput = "*"
 homebrew-pypi-poet = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.11"
 
 [scripts]
 zephr = "python -m zephrcli.zephr"
