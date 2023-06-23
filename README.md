@@ -1,11 +1,28 @@
 # Installation
+Hombrew installation is supported from the private tap `arthurcrawford/tap` 
+```bash
+$ brew tap arthurcrawford/tap
+$ brew install zephrcli
+```
+# Usage
+
+`zephrcli` commands are grouped into two sets of subcommands.
+* `zephr admin` -  commands for accessing admin API and requiring API keys
+* `zephr public` -  Zephr user commands for accessing the public API
+
+### Authentication
 
 ```bash
-brew tap arthurcrawford/tap
-brew install zephrcli
+$ zephr admin login
+Profile: staging
+Tenant id: acmecorp-staging
+Client id: c47f5039-306b-46a3-941d-4f191a9cd838
+client_secret: ****
 ```
-
-# Example Usage
+```bash
+$ zephr admin logout --profile staging
+logged out profile: staging
+```
 
 ### List SDK rules.
 
@@ -21,8 +38,9 @@ _(TODO paging implementation required)_
 
 # Local build
 
-```
-pipenv install
+```bash
+$ pipenv install
+$ pipenv run zephr
 ```
 
 # Running locally

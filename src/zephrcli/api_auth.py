@@ -86,9 +86,9 @@ def public_api_command(func):
 
 
 @click.command(help="Authorise and save credentials to key ring")
-@click.option('--profile', help="Profile name used for persistent credentials")
-@click.option('--tenant-id', envvar='TENANT_ID', help="Zephr tenant ID", required=True, prompt=True)
-@click.option('--client-id', envvar='CLIENT_ID', help="Zephr API client key ID", required=True, prompt=True)
+@click.option('--profile', required=True, prompt=True, help="Profile name used for persistent credentials")
+@click.option('--tenant-id', envvar='TENANT_ID', required=True, prompt=True, help="Zephr tenant ID")
+@click.option('--client-id', envvar='CLIENT_ID', required=True, prompt=True, help="Zephr API client key ID")
 @click.option('--client-secret', envvar='CLIENT_SECRET', help="Zephr API client secret")
 def login(profile, tenant_id, client_id, client_secret):
     # Custom prompt using pwinput for secret to mask with *
@@ -102,7 +102,7 @@ def login(profile, tenant_id, client_id, client_secret):
 
 
 @click.command(help="Remove credentials from key ring")
-@click.option('--profile', help="Profile name used for persistent credentials", required=True)
+@click.option('--profile', required=True, prompt=True, help="Profile name used for persistent credentials")
 def logout(profile):
     try:
         keyring.delete_password(app_name, profile)
