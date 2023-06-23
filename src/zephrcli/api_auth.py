@@ -31,6 +31,8 @@ class KeychainCredentialsOption(click.Option):
                 value = pwinput.pwinput(f'{self.name}: ')
             else:
                 value = click.prompt(f'{self.name}: ')
+        if value is None:
+            value = ''
         # Push value into the context
         ctx.params[self.name] = value
         # Follow superclass convention for return value
