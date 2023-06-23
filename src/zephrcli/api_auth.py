@@ -15,28 +15,26 @@ class KeychainCredentialsOption(click.Option):
         super(KeychainCredentialsOption, self).__init__(*args, **kwargs)
 
     # Override normal option parsing to fine tune prompting behaviour
-    def handle_parse_result(self, ctx, opts, args):
-        # Parse as normal with superclass
-        rv = super(KeychainCredentialsOption, self).handle_parse_result(ctx, opts, args)
-
-        # If the option value is still None after normal parsing
-        value = rv[0]
-        profile = ctx.params['profile']
-        if value is None:
-            # Look for the value in the keychain
-            value = self.get_cred(self.name, profile)
-        if value is None:
-            if self.hide_input:
-                # Mask the input if it's a secret
-                value = pwinput.pwinput(f'{self.name}: ')
-            else:
-                value = click.prompt(f'{self.name}: ')
-        if value is None:
-            value = ''
-        # Push value into the context
-        ctx.params[self.name] = value
-        # Follow superclass convention for return value
-        return value, args
+    # def handle_parse_result(self, ctx, opts, args):
+    #     # Parse as normal with superclass
+    #     rv = super(KeychainCredentialsOption, self).handle_parse_result(ctx, opts, args)
+    #
+    #     # If the option value is still None after normal parsing
+    #     value = rv[0]
+    #     profile = ctx.params['profile']
+    #     if value is None:
+    #         # Look for the value in the keychain
+    #         value = self.get_cred(self.name, profile)
+    #     if value is None:
+    #         if self.hide_input:
+    #             # Mask the input if it's a secret
+    #             value = pwinput.pwinput(f'{self.name}: ')
+    #         else:
+    #             value = click.prompt(f'{self.name}: ')
+    #     # Push value into the context
+    #     ctx.params[self.name] = value
+    #     # Follow superclass convention for return value
+    #     return value, args
 
     def get_creds(self, profile):
         # global _creds
