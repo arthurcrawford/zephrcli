@@ -308,10 +308,55 @@ def list_user_sessions(profile, tenant_id, client_id, client_secret, user_id):
 
 @click.command()
 @admin_api_command
-@click.argument('user-id')
+@click.option('-u', '--user-id', required=True, help='The ID of the user')
 def get_user_grants(profile, tenant_id, client_id, client_secret, user_id):
     debug(profile)
-    do_get_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}/grants")
+    do_get_admin(tenant_id, client_id, client_secret, f'/v3/users/{user_id}/grants')
+
+
+@click.command(help='Get a user grant')
+@admin_api_command
+@click.option('-u', '--user-id', required=True, help='The ID of the user')
+@click.option('-g', '--grant-id', required=True, help='The ID of the grant')
+def get_user_grant(profile, tenant_id, client_id, client_secret, user_id, grant_id):
+    debug(profile)
+    do_get_admin(tenant_id, client_id, client_secret, f'/v3/users/{user_id}/grants/{grant_id}')
+
+
+@click.command(help="Grant a product to a user")
+@admin_api_command
+@click.option('-u', '--user-id', required=True, help='The ID of the user')
+@click.option('-p', '--product-id', required=True, help='The ID of the product')
+# If it's a product share, not sure we need entitlement_id - i.e. we could get the product to get its bundle entitlement ID instead
+@click.option('-e', '--entitlement-id', required=True, help='The ID of the associated bundle entitlement')
+@click.option('-b', '--start-time', help='When grant will begin - e.g. 2023-12-31 23:59:59 - default=now')
+@click.option('-f', '--end-time', help='When grant will finish e.g. 2024-12-31 23:59:59 - default=indefinite')
+def create_user_grant(profile, tenant_id, client_id, client_secret, user_id, product_id, entitlement_id,
+                      start_time, end_time):
+    debug(profile)
+    body = {
+        "entitlement_type": "bundle",
+        "entitlement_id": f"{entitlement_id}",
+        "product_id": f"{product_id}"
+    }
+    if start_time is not None:
+        body['startTime'] = start_time
+
+    if end_time is not None:
+        body['endTime'] = end_time
+
+    cookies = {}
+
+    do_post_admin(f'/v3/users/{user_id}/grants', body, cookies, tenant_id, client_id, client_secret)
+
+
+@click.command(help='Delete a user grant')
+@admin_api_command
+@click.option('-u', '--user-id', required=True, help='The ID of the user')
+@click.option('-g', '--grant-id', required=True, help='The ID of the grant')
+def delete_user_grant(profile, tenant_id, client_id, client_secret, user_id, grant_id):
+    debug(profile)
+    do_delete_admin(tenant_id, client_id, client_secret, f'/v3/users/{user_id}/grants/{grant_id}')
 
 
 # TODO - doesn't work as documented - always returns 404! raise issue with Zephr
@@ -642,6 +687,9 @@ admin.add_command(list_user_sessions)
 admin.add_command(get_user)
 admin.add_command(create_session)
 admin.add_command(get_user_grants)
+admin.add_command(get_user_grant)
+admin.add_command(create_user_grant)
+admin.add_command(delete_user_grant)
 admin.add_command(list_account_users)
 admin.add_command(list_user_accounts)
 admin.add_command(add_user_to_account)
