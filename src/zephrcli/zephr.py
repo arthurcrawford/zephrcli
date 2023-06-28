@@ -213,10 +213,40 @@ def cli():
 # def get_admin_user(admin_session_id):
 #     do_get(f"/v3/admin/sessions/{admin_session_id}")
 
+@click.command(help='Create a user')
+@admin_api_command
+@click.option('-e', '--email', required=True, help='Email address of the user, used as identifier')
+@click.option('-f', '--first-name', help='First name of the user')
+@click.option('-l', '--last-name', help='Last name of the user')
+@click.option('-k', '--foreign-key', nargs=2, help='Foreign key to your user platform e.g. "-k my_fk 1234"')
+def create_user(profile, tenant_id, client_id, client_secret, email, first_name, last_name, foreign_key):
+    debug(profile)
+
+    body = {
+        'identifiers': {
+            'email_address': email
+        },
+        'attributes': {}
+    }
+    cookies = {}
+
+    if first_name is not None:
+        # Zephr documentation incorrectly shows attribute name as 'first_name'
+        body['attributes'].update({'firstname': first_name})
+    if last_name is not None:
+        # Zephr documentation incorrectly shows attribute name as 'surname'
+        body['attributes'].update({'lastname': last_name})
+
+    if foreign_key is not None:
+        key, value = foreign_key
+        body['foreign_keys'] = {key: value}
+
+    do_post_admin("/v3/users", body, cookies, tenant_id, client_id, client_secret)
+
 
 @click.command(help='List users, or select by foreign key query')
 @admin_api_command
-@click.option('-f', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
+@click.option('-k', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
 def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
     debug(profile)
 
@@ -533,12 +563,12 @@ def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
 @click.command(help='Invoke rule(s) and get decisions')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
-@click.option('-j', '--jwt')
-@click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
+@click.option('-j', '--jwt', help='Specify userID/product claims in a signed JWT')
+@click.option('-k', '--foreign-key', nargs=2, help='Specify user by foreign key e.g. "-k my_fk 1234"')
 @click.option('-i', '--ip', help='Specify IP address of caller: default = actual IP')
 @click.option('-u', '--user-agent', help='Specify the User-Agent header')
 @click.option('-z', '--session-id', help='ID of the requesting session')
-@click.argument('features', nargs=-1)
+@click.argument('features', nargs=-1, required=True)
 def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, session_id, features):
     debug(profile)
     body = {'features': []}
@@ -579,7 +609,7 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, sess
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
 @click.option('-e', '--email', required=True, help='Email of the user to register')
-@click.option('-f', '--foreign-key', nargs=2, help='Specify a foreign key name and value')
+@click.option('-k', '--foreign-key', nargs=2, help='Foreign key to your user platform e.g. "-k my_fk 1234"')
 def register_user(profile, tenant_id, site_name, email, foreign_key):
     debug(profile)
     body = {'identifiers': {'email_address': email}}
@@ -607,6 +637,7 @@ admin.add_command(login)
 admin.add_command(logout)
 admin.add_command(list_products)
 admin.add_command(list_users)
+admin.add_command(create_user)
 admin.add_command(list_user_sessions)
 admin.add_command(get_user)
 admin.add_command(create_session)
