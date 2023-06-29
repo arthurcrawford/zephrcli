@@ -3,10 +3,13 @@ import json
 import time
 import uuid
 import click
+import pwinput
 import requests
 import importlib.resources
 
-from .api_auth import admin_api_command, public_api_command, login, logout
+from click import UsageError
+
+from .api_auth import admin_api_command, public_api_command, login, logout, get_cred, get_creds
 
 # Load VERSION as a resource because we may not have access to file system
 version = importlib.resources.read_text(__package__, "VERSION")
@@ -220,7 +223,7 @@ def cli():
 @click.option('-l', '--last-name', help='Last name of the user')
 @click.option('-k', '--foreign-key', nargs=2, help='Foreign key to your user platform e.g. "-k my_fk 1234"')
 def create_user(profile, tenant_id, client_id, client_secret, email, first_name, last_name, foreign_key):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
 
     body = {
         'identifiers': {
@@ -244,11 +247,33 @@ def create_user(profile, tenant_id, client_id, client_secret, email, first_name,
     do_post_admin("/v3/users", body, cookies, tenant_id, client_id, client_secret)
 
 
+def parse_credential_options(profile, tenant_id, client_id, client_secret):
+    # Prefer to use the profile option if specified
+    if profile is not None:
+        # If any credential options also specified - incorrect usage and exit
+        if tenant_id is not None or client_id is not None or client_secret is not None:
+            raise UsageError(
+                'Please use either --profile, or [--tenant-id, --client-id, --client-secret], but not both')
+        # Get credential from profile
+        creds = get_creds(profile)
+        return creds['tenant_id'], creds['client_id'], creds['client_secret']
+    else:
+        if tenant_id is None:
+            tenant_id = click.prompt('Tenant ID')
+        if client_id is None:
+            client_id = click.prompt('Client ID')
+        if client_secret is None:
+            client_secret = pwinput.pwinput('Client secret: ')
+
+    click.echo(click.style(f'Using Zephr tenant: {tenant_id}', fg='green'), err=True)
+    return tenant_id, client_id, client_secret
+
+
 @click.command(help='List users, or select by foreign key query')
 @admin_api_command
 @click.option('-k', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
 def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
 
     query = ''
     if foreign_key is not None:
@@ -267,7 +292,7 @@ def debug(profile):
 @admin_api_command
 @click.argument('user-id')
 def get_user(profile, tenant_id, client_id, client_secret, user_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}")
 
 
@@ -277,7 +302,7 @@ def get_user(profile, tenant_id, client_id, client_secret, user_id):
 @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('email')
 def create_session(profile, tenant_id, client_id, client_secret, jwt, email):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     body = {
         "identifiers": {
             "email_address": f"{email}"
@@ -299,7 +324,7 @@ def create_session(profile, tenant_id, client_id, client_secret, jwt, email):
 # @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.option('-u', '--user-id', required=True, help='Unique ID of the user')
 def list_user_sessions(profile, tenant_id, client_id, client_secret, user_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
 
     # https://{tenantId}.api.zephr.com/v3/users/{user_id}/sessions
     do_get_admin(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret,
@@ -310,7 +335,7 @@ def list_user_sessions(profile, tenant_id, client_id, client_secret, user_id):
 @admin_api_command
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 def get_user_grants(profile, tenant_id, client_id, client_secret, user_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f'/v3/users/{user_id}/grants')
 
 
@@ -319,7 +344,7 @@ def get_user_grants(profile, tenant_id, client_id, client_secret, user_id):
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 @click.option('-g', '--grant-id', required=True, help='The ID of the grant')
 def get_user_grant(profile, tenant_id, client_id, client_secret, user_id, grant_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f'/v3/users/{user_id}/grants/{grant_id}')
 
 
@@ -333,7 +358,7 @@ def get_user_grant(profile, tenant_id, client_id, client_secret, user_id, grant_
 @click.option('-f', '--end-time', help='When grant will finish e.g. 2024-12-31 23:59:59 - default=indefinite')
 def create_user_grant(profile, tenant_id, client_id, client_secret, user_id, product_id, entitlement_id,
                       start_time, end_time):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     body = {
         "entitlement_type": "bundle",
         "entitlement_id": f"{entitlement_id}",
@@ -355,7 +380,7 @@ def create_user_grant(profile, tenant_id, client_id, client_secret, user_id, pro
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 @click.option('-g', '--grant-id', required=True, help='The ID of the grant')
 def delete_user_grant(profile, tenant_id, client_id, client_secret, user_id, grant_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_delete_admin(tenant_id, client_id, client_secret, f'/v3/users/{user_id}/grants/{grant_id}')
 
 
@@ -363,7 +388,7 @@ def delete_user_grant(profile, tenant_id, client_id, client_secret, user_id, gra
 @click.command()
 @admin_api_command
 def list_account_users(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     # NOTE - rather than return empty list - this returns 404 if no results
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/accounts/users")
 
@@ -372,7 +397,7 @@ def list_account_users(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('user-id')
 def list_user_accounts(profile, tenant_id, client_id, client_secret, user_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     # NOTE - rather than return empty list - this returns 404 if no results
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}/accounts")
 
@@ -382,7 +407,7 @@ def list_user_accounts(profile, tenant_id, client_id, client_secret, user_id):
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 @click.option('-a', '--account-id', required=True, help='The ID of the company account')
 def add_user_to_account(profile, tenant_id, client_id, client_secret, user_id, account_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_put(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}/users/{user_id}")
 
 
@@ -391,7 +416,7 @@ def add_user_to_account(profile, tenant_id, client_id, client_secret, user_id, a
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 @click.option('-a', '--account-id', required=True, help='The ID of the company account')
 def remove_user_from_account(profile, tenant_id, client_id, client_secret, user_id, account_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_delete_admin(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}/users/{user_id}")
 
 
@@ -399,35 +424,35 @@ def remove_user_from_account(profile, tenant_id, client_id, client_secret, user_
 @admin_api_command
 @click.option('-u', '--user-id', required=True, help='The ID of the user')
 def delete_user(profile, tenant_id, client_id, client_secret, user_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_delete_admin(tenant_id, client_id, client_secret, f"/v3/users/{user_id}")
 
 
 @click.command()
 @admin_api_command
 def list_schema_users(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/schema/users")
 
 
 @click.command()
 @admin_api_command
 def list_unclaimed_gifts(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/gift")
 
 
 @click.command()
 @admin_api_command
 def list_request_rules(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/request-rules")
 
 
 @click.command()
 @admin_api_command
 def list_accounts(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/accounts")
 
 
@@ -435,21 +460,21 @@ def list_accounts(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('account-id')
 def get_account(profile, tenant_id, client_id, client_secret, account_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/accounts/{account_id}")
 
 
 @click.command()
 @admin_api_command
 def list_feature_rules(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/feature-rules")
 
 
 @click.command()
 @admin_api_command
 def list_companies(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/companies")
 
 
@@ -457,7 +482,7 @@ def list_companies(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('company-id')
 def get_company(profile, tenant_id, client_id, client_secret, company_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/companies/{company_id}")
 
 
@@ -465,77 +490,70 @@ def get_company(profile, tenant_id, client_id, client_secret, company_id):
 @admin_api_command
 @click.argument('company-id')
 def delete_company(profile, tenant_id, client_id, client_secret, company_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_delete_admin(tenant_id, client_id, client_secret, f"/v3/companies/{company_id}")
 
 
 @click.command()
 @admin_api_command
 def list_products(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/products")
 
 
 @click.command()
 @admin_api_command
 def list_meters(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/meters")
 
 
 @click.command()
 @admin_api_command
 def list_static(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/static")
 
 
 @click.command()
 @admin_api_command
 def list_webhooks(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/webhooks")
 
 
 @click.command()
 @admin_api_command
-def list_schema_users(profile, tenant_id, client_id, client_secret):
-    debug(profile)
-    do_get_admin(tenant_id, client_id, client_secret, "/v3/schema/users")
-
-
-@click.command()
-@admin_api_command
 def list_cache_configurations(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/cache-configurations")
 
 
 @click.command()
 @admin_api_command
 def get_configuration(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/configuration")
 
 
 @click.command()
 @admin_api_command
 def list_credits(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/credits")
 
 
 @click.command()
 @admin_api_command
 def list_entitlements(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/entitlements")
 
 
 @click.command()
 @admin_api_command
 def list_bundles(profile, tenant_id, client_id, client_secret):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/bundles")
 
 
@@ -543,8 +561,24 @@ def list_bundles(profile, tenant_id, client_id, client_secret):
 @admin_api_command
 @click.argument('bundle-id')
 def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
-    debug(profile)
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/bundles/{bundle_id}")
+
+
+def parse_single_credential_option(profile=None, tenant_id=None):
+    # Prefer to use the profile option if specified
+    if profile is not None:
+        # If tenant_id also specified - incorrect usage and exit
+        if tenant_id is not None:
+            raise UsageError('Please use either --profile, or --tenant-id, but not both')
+        # Get credential from profile
+        tenant_id = get_cred('tenant_id', profile)
+    else:
+        if tenant_id is None:
+            # Prompt for tenant_id
+            tenant_id = click.prompt('Tenant ID')
+    click.echo(click.style(f'Using Zephr tenant: {tenant_id}', fg='green'), err=True)
+    return tenant_id
 
 
 @click.command(help='List rules (aka Features)')
@@ -553,7 +587,7 @@ def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
 @click.option('-r', '--rule-type', required=True,
               type=click.Choice(['html', 'json', 'sdk', 'browser'], case_sensitive=False))
 def list_rules(profile, tenant_id, site_name, rule_type):
-    debug(profile)
+    tenant_id = parse_single_credential_option(profile, tenant_id)
     query = f'ruleType={rule_type}' if rule_type else ''
     do_get_public("/zephr/features", tenant_id, site_name, query)
 
@@ -564,7 +598,7 @@ def list_rules(profile, tenant_id, site_name, rule_type):
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
 @click.option('-z', '--session-id', help='ID of the requesting session')
 def list_sessions(profile, tenant_id, site_name, jwt, session_id):
-    debug(profile)
+    tenant_id = parse_single_credential_option(profile=profile, tenant_id=tenant_id)
     cookies = {}
     if jwt is not None:
         cookies['blaize_jwt'] = jwt
@@ -580,7 +614,7 @@ def list_sessions(profile, tenant_id, site_name, jwt, session_id):
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
 @click.option('-z', '--session-id', required=True, help='ID of the requesting session')
 def delete_session(profile, tenant_id, site_name, jwt, session_id):
-    debug(profile)
+    tenant_id = parse_single_credential_option(profile=profile, tenant_id=tenant_id)
     cookies = {}
     if jwt is not None:
         cookies['blaize_jwt'] = jwt
@@ -596,14 +630,12 @@ def delete_session(profile, tenant_id, site_name, jwt, session_id):
 @click.option('-j', '--jwt', required=True, help='JWT bearing foreign key user ID')
 @click.option('-z', '--session-id', required=True, help='ID of the requesting session')
 def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
-    debug(profile)
+    tenant_id = parse_single_credential_option(profile=profile, tenant_id=tenant_id)
     cookies = {'blaize_jwt': jwt,
                'blaize_session': session_id}
     do_delete_public(path=f"/zephr/public/sessions/v1/sessions?except-current",
                      tenant_id=tenant_id, site_name=site_name, cookies=cookies)
 
-
-# https://{your-domain}/zephr/public/sessions/v1/sessions&except-current
 
 @click.command(help='Invoke rule(s) and get decisions')
 @public_api_command
@@ -615,7 +647,7 @@ def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
 @click.option('-z', '--session-id', help='ID of the requesting session')
 @click.argument('features', nargs=-1, required=True)
 def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, session_id, features):
-    debug(profile)
+    tenant_id = parse_single_credential_option(profile=profile, tenant_id=tenant_id)
     body = {'features': []}
     cookies = {}
     headers = {}
@@ -656,7 +688,7 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, sess
 @click.option('-e', '--email', required=True, help='Email of the user to register')
 @click.option('-k', '--foreign-key', nargs=2, help='Foreign key to your user platform e.g. "-k my_fk 1234"')
 def register_user(profile, tenant_id, site_name, email, foreign_key):
-    debug(profile)
+    tenant_id = parse_single_credential_option(profile, tenant_id)
     body = {'identifiers': {'email_address': email}}
     cookies = {}
 
