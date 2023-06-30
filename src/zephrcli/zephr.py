@@ -673,6 +673,9 @@ def decide(profile, tenant_id, site_name, jwt, foreign_key, ip, user_agent, sess
         # Only this, un-documented method seems to work
         body['user_agent'] = user_agent
 
+    # N.B. If you specify a foreign key, no user session is created for this user.
+    # An anonymous session is created - this overrides the JWT
+    # JWT + session id is required to consume a user session.
     if foreign_key is not None:
         key, value = foreign_key
         body['foreign_keys'] = {key: value}

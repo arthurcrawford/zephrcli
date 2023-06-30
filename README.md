@@ -1,109 +1,117 @@
+# zephrcli
+I created `zephrcli` as my own test and development tool during an integration project with the subscriber
+experience platform Zephr. 
+
+As my needs became more involved, scripts using `curl` and `postman` etc started to become limited me and 
+were difficult to share around the team.  So I built this to help me learn how to use Zephr more effectively.
+
+If you find it helpful too, please feel free to use.  If you don't find it helpful, I don't really mind 😌.
+
+It is provided as-is, with no guarantees, and does not represent any official 
+Zephr or Zuora sanctioned project.
+
+Currently only `macOS` is supported.
+
 # Installation
-Hombrew installation is supported from the private tap `arthurcrawford/tap` 
+
 ```bash
-$ brew tap arthurcrawford/tap
-$ brew install zephrcli
+# Install zephrcli
+brew install arthurcrawford/tap/zephrcli
+# Check it works
+zephr --help                                   
 ```
-# Usage
 
-`zephrcli` commands are grouped into two sets of subcommands.
-* `zephr admin` -  commands for accessing admin API and requiring API keys
-* `zephr public` -  Zephr user commands for accessing the public API
+`zephrcli` subcommands are grouped into either `zephr admin`, requiring API keys, or `zephr public`, which just 
+require the tenant ID.
 
-### Authentication
+## Authentication
 
+The `admin login` command stores an API key and secret encrypted in the keychain, under a named profile.
 ```bash
-$ zephr admin login
-Profile: staging
-Tenant id: acmecorp-staging
+zephr admin login
+```
+```
+Profile: dev
+Tenant id: acmecorp-dev
 Client id: c47f5039-306b-46a3-941d-4f191a9cd838
-client_secret: ****
+Client secret: ****
+```
+The `admin logout` command removes the named profile from the keychain.
+```bash
+zephr admin logout --profile dev
+```
+```
+logged out profile: dev
+```
+With a stored profile you can execute `zephr admin` commands like this.
+```bash
+zephr admin list-users --profile dev
+```
+
+Stored profiles can be found in the login keychain by searching for `zephr`.
+
+You don't have to store keys in a profile.  You can specify them in command line arguments, environment variables or 
+just enter the values when prompted.
+
+`zephr public` commands do not need API keys, but it is still convenient to specify them with a profile, since the 
+profile also stores the tenant ID, which is required.  For example:
+
+```bash
+# by specifying a profile
+zephr public list-rules -r sdk -s my-site --profile dev
 ```
 ```bash
-$ zephr admin logout --profile staging
-logged out profile: staging
+# or by specifying the tenant ID explicitly
+zephr public list-rules -r sdk -s my-site --tenant-id acmecorp
 ```
 
-### List SDK rules.
-
+# Local install & run
+You will need `python > 3.11` and `pipenv` installed locally. The most convenient way to install, run and test locally 
+is then to use `pipenv` which manages the dependencies and creates a virtual environment.
 ```bash
-zephr public list-rules --profile dev -s ac-test-site -r sdk | jq -r '.[].id'
+pipenv install
+pipenv run zephr
 ```
 
-#### List users.    
-```bash
-zephr admin list-users --profile dev | jq -r '.results[].identifiers.email_address'
-```
-_(TODO paging implementation required)_
-
-# Local build
-
-```bash
-$ pipenv install
-$ pipenv run zephr
-```
-
-# Running locally
-
-Use pipenv run for local testing.
-```
-alias prp='pipenv run python'
-```
-The main zephr script is in the `zephrcli` package under the `src` directory.
-To run locally, `pipenv` reads the contents of the `.env` file which adds this package directory to the `PYTHONPATH` environment variable.
-The `.env` file looks like this.
-
-```
-cat .env
-PYTHONPATH=${PYTHONPATH}:src
-```
-
-Show default help message.
-```
-prp -m zephrcli.zephr
-Usage: zephr.py [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  admin          Admin commands needing API keys
-  decide         Invoke rule(s) and get decisions
-  list-rules     List rules (aka Features)
-  register-user  Register a new user
-```
-Alternatively, you can use the following `scripts` definition in the Pipfile.
-
+`pipenv` uses the following `scripts` definition in the Pipfile to run the right module.
 ```
 [scripts]
 zephr = "python -m zephrcli.zephr"
 ```
-You would use it like this.
+
+The main zephr script is in the `zephrcli` package under the `src` directory.
+When running in this way, `pipenv` reads the contents of the `.env` file which adds this 
+package directory to the `PYTHONPATH` environment variable as follows.
+
 ```
-pipenv run zephr
+PYTHONPATH=${PYTHONPATH}:src
 ```
 
-
-The admin commands group require API key/secret credentials.
-
-# Examples
-
-List all product ids.
+# Example Usage
+#### List SDK rules
 ```bash
-prp zephr.py admin list-products --profile dev | jq -r '.results[].id'
+zephr public list-rules --profile dev -s ac-test-site -r sdk | jq -r '.[].id'
 ```
-
-## Getting decisions on all live features at once.
-
+#### List users
 ```bash
-ARGS=(`prp zephr.py list-rules --profile dev -r sdk -s ac-test-site | jq -r '.[].id' | tr '\n' ' '`) && prp zephr.py decide --profile dev -s ac-test-site ${ARGS[@]} | jq
+zephr admin list-users --profile dev | jq -r '.results[].identifiers.email_address'
 ```
-The first part of the above command lists all SDK features for a site using `jq` to extract just the slug IDs.  The second half of the command sends all these IDs to Zephr to get a decision on each.
-
-List Companies and Accounts
-
-Filter just the names.
-
+_(TODO paging implementation required)_
+#### List product IDs
 ```bash
-$ prp zephr.py admin list-accounts --profile dev | jq -r '.results[].name'
+zephr admin list-products --profile dev | jq -r '.results[].id'
 ```
+#### List company account names
+```bash
+zephr admin list-accounts --profile dev | jq -r '.results[].name'
+```
+#### Get decisions for all live features
+```bash
+ARGS=(`zephr public list-rules --profile dev -r sdk -s ac-test-site \
+  | jq -r '.[].id' | tr '\n' ' '`) && \
+  zephr public decide --profile dev -s ac-test-site ${ARGS[@]} | jq
+```
+The first part of the above command lists all SDK features for a site
+using `jq` to extract just the slug IDs.  The second half of the command
+sends all these IDs to Zephr to get a decision on each.
+
