@@ -637,6 +637,52 @@ def delete_other_sessions(profile, tenant_id, site_name, jwt, session_id):
                      tenant_id=tenant_id, site_name=site_name, cookies=cookies)
 
 
+def do_admin_graphql(body, cookies, client_id, client_secret):
+    path = '/v4/admin/graphql/'
+    body_string = json.dumps(body)
+    method = "POST"
+    query = ""
+    authorization_header_value = create_zephr_authorization_header(client_id, client_secret, body_string,
+                                                                   method, path, query)
+    headers = {'Authorization': authorization_header_value,
+               'Content-Type': 'application/json', 'Accept': 'application/json'}
+
+    url = f'https://console.zephr.com{path}'
+
+    r = requests.post(url, headers=headers, json=body, cookies=cookies)
+    if r.ok:
+        print(json.dumps(r.json(), indent=2))
+    else:
+        print(r)
+
+
+# This operation was not available through the documented API, so we use the admin console graphql.
+# This may not be supported in the future, so this approach will need to be reviewed
+@click.command()
+@admin_api_command
+@click.option('-u', '--user-id', required=True, help='The ID of the user')
+@click.option('-l', '--session-limit', required=True, help='User concurrent session limit')
+def set_user_session_limit(profile, tenant_id, client_id, client_secret, user_id, session_limit):
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
+
+    body = {
+        "operationName": "updateUserConcurrentSessionLimit",
+        "variables": {
+            "userId": user_id,
+            "limit": session_limit
+        },
+        "query": "mutation updateUserConcurrentSessionLimit($userId: ID!, $limit: Int) {"
+                 "    updateUserConcurrentSessionLimit(userId: $userId, limit: $limit) {"
+                 "      status"
+                 "      message"
+                 "      __typename"
+                 "    }"
+                 "}"
+    }
+
+    do_admin_graphql(body=body, cookies={}, client_id=client_id, client_secret=client_secret)
+
+
 @click.command(help='Invoke rule(s) and get decisions')
 @public_api_command
 @click.option('-s', '--site-name', required=True, help='Name of the Zephr site')
@@ -719,6 +765,7 @@ admin.add_command(list_products)
 admin.add_command(list_users)
 admin.add_command(create_user)
 admin.add_command(list_user_sessions)
+admin.add_command(set_user_session_limit)
 admin.add_command(get_user)
 admin.add_command(create_session)
 admin.add_command(get_user_grants)
