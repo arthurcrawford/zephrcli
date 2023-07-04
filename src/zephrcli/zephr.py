@@ -272,15 +272,18 @@ def parse_credential_options(profile, tenant_id, client_id, client_secret):
 @click.command(help='List users, or select by foreign key query')
 @admin_api_command
 @click.option('-k', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
-def list_users(profile, tenant_id, client_id, client_secret, foreign_key):
+@click.option('-r', '--results-per-page', help='Number of results per page response', default=50)
+@click.option('-p', '--page', help='Number of page', default=1)
+def list_users(profile, tenant_id, client_id, client_secret, foreign_key, results_per_page, page):
     tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
 
-    query = ''
+    query = f'rpp={results_per_page}&page={page}'
+    # query = 'rpp=2'
     if foreign_key is not None:
         key, value = foreign_key
         query = f'foreign_key.{key}={value}'
 
-    do_get_admin(tenant_id, client_id, client_secret, "/v3/users",
+    do_get_admin(tenant_id, client_id, client_secret, '/v3/users',
                  query=query)
 
 
