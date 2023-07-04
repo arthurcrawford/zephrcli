@@ -274,10 +274,15 @@ def parse_credential_options(profile, tenant_id, client_id, client_secret):
 @click.option('-k', '--foreign-key', nargs=2, help='Query by foreign key e.g. "-f my_fk 1234"')
 @click.option('-r', '--results-per-page', help='Number of results per page response', default=50)
 @click.option('-p', '--page', help='Number of page', default=1)
-def list_users(profile, tenant_id, client_id, client_secret, foreign_key, results_per_page, page):
+@click.option('-s', '--search', help='Search term')
+def list_users(profile, tenant_id, client_id, client_secret, foreign_key, results_per_page, page, search):
     tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
 
     query = f'rpp={results_per_page}&page={page}'
+
+    if search is not None:
+        query += f'&search=*{search}*'
+
     # query = 'rpp=2'
     if foreign_key is not None:
         key, value = foreign_key
