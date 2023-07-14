@@ -115,7 +115,104 @@ using `jq` to extract just the slug IDs.  The second half of the command
 sends all these IDs to Zephr to get a decision on each.
 
 # Packaging
+### Tag a version
 ```bash
-# Tag a version
 VERSION=$(cat src/zephrcli/VERSION); git tag -a $VERSION -m "version bump"; git push origin --tags
+```
+### Get SHA 256 checksum of the tagged tarball
+```bash
+VERSION=$(cat src/zephrcli/VERSION) && 
+  wget "https://github.com/arthurcrawford/zephrcli/archive/refs/tags/${VERSION}.tar.gz" && 
+  shasum -a 256 "${VERSION}.tar.gz"
+```
+### Update Homebrew tap formula
+The following changes are made to the `zephrcli.rb` formula in the Homebrew tap repo.
+
+```ruby
+  url "https://github.com/arthurcrawford/zephrcli/archive/refs/tags/0.1.41.tar.gz"
+  version "0.1.41"
+  sha256 "b37f59a05f6a7b72f4cf01bfbfab1c5119473a411a1a05f1ef5cc74aa2f453d1"
+
+  depends_on "python@3.11"
+
+  bottle do
+    root_url "https://github.com/arthurcrawford/zephrcli/releases/download/0.1.41"
+    sha256 cellar: :any_skip_relocation, arm64_big_sur: "f694dbd875745c0c47ae6295b0c65844e92000cc1e796c2273c959cc3694e2d7"
+  end
+```
+Modify the following in the formula file `zephrcli.rb`
+* Update `url` to correct version
+* Update `version` to correct version
+* Update `sha256` to correct checksum
+* Comment out the `bottle` clause 
+
+```bash
+git add zephrcli.rb
+git commit -m "version bump"
+git push
+brew update
+```
+
+### Build bottle(s)
+To speed up the installation, build bottle from the formula.
+
+```bash
+brew uninstall zephrcli
+brew install --build-bottle arthurcrawford/tap/zephrcli
+brew bottle zephrcli
+==> Determining arthurcrawford/tap/zephrcli bottle rebuild...
+==> Bottling zephrcli--0.1.43.arm64_big_sur.bottle.1.tar.gz...
+==> Detecting if zephrcli--0.1.43.arm64_big_sur.bottle.1.tar.gz is relocatable...
+./zephrcli--0.1.43.arm64_big_sur.bottle.1.tar.gz
+  bottle do
+    rebuild 1
+    sha256 cellar: :any_skip_relocation, arm64_big_sur: "600614bd593f003fdc7bb2a38aa7229fc18669c46ce331677d9d5e57c3267284"
+  end
+```
+
+### Create a Github release and add the Bottle
+Rename the bottle file replacing `--` characters with `-` and removing the build number.
+
+e.g.
+
+```bash
+mv zephrcli--0.1.43.arm64_big_sur.bottle.1.tar.gz zephrcli-0.1.43.arm64_big_sur.bottle.tar.gz
+```
+Create or update a GitHub release from the appropriate tag.
+Upload the bottle binary file to the release and publish.
+
+### Update the formula to use the bottle
+
+Take the suggested bottle clause with the bottle SHA checksum as follows.
+
+```ruby
+  bottle do
+    rebuild 1
+    sha256 cellar: :any_skip_relocation, arm64_big_sur: "600614bd593f003fdc7bb2a38aa7229fc18669c46ce331677d9d5e57c3267284"
+  end
+```
+Modify to remove any build number and add root URL to the GitHub release
+```ruby
+  bottle do
+    root_url "https://github.com/arthurcrawford/zephrcli/releases/download/0.1.43"
+    sha256 cellar: :any_skip_relocation, arm64_big_sur: "600614bd593f003fdc7bb2a38aa7229fc18669c46ce331677d9d5e57c3267284"
+  end
+```
+
+```bash
+git add zephrcli.rb
+git commit -m "added bottle"
+git push
+```
+
+Uninstall and then reinstall using the bottle.
+```bash
+brew uninstall zephrcli
+brew update
+brew install zephrcli
+...
+==> Installing zephrcli from arthurcrawford/tap
+==> Pouring zephrcli-0.1.43.arm64_big_sur.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/zephrcli/0.1.43: 1,014 files, 11.9MB
+...
 ```
