@@ -109,7 +109,11 @@ def do_post_public(path, body, cookies, tenant_id, site_name, extra_headers=None
         print(r)
 
 
-def do_put(tenant_id, client_id, client_secret, path, body={}, extra_headers={}):
+def do_put(tenant_id, client_id, client_secret, path, body=None, extra_headers=None):
+    if extra_headers is None:
+        extra_headers = {}
+    if body is None:
+        body = {}
     protocol = "https"
     host = f'{tenant_id}.api.zephr.com'
     body_string = json.dumps(body)
@@ -221,7 +225,7 @@ def cli():
 @click.option('-e', '--email', required=True, help='Email address of the user, used as identifier')
 @click.option('-f', '--first-name', help='First name of the user')
 @click.option('-l', '--last-name', help='Last name of the user')
-@click.option('-k', '--foreign-key', nargs=2, help='Foreign key to your user platform e.g. "-k my_fk 1234"')
+@click.option('-k', '--foreign-key', nargs=2, help='Foreign key to external user system e.g. "-k myfk 1234"')
 def create_user(profile, tenant_id, client_id, client_secret, email, first_name, last_name, foreign_key):
     tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
 
@@ -558,19 +562,75 @@ def list_entitlements(profile, tenant_id, client_id, client_secret):
     do_get_admin(tenant_id, client_id, client_secret, "/v3/entitlements")
 
 
-@click.command()
+@click.command(help="Create a bundle (for attachment to a Product)")
+@admin_api_command
+@click.option('-l', '--label', required=True, help='The label of the bundle')
+@click.option('-d', '--description', required=False, help='The description of the bundle', default="Same as label")
+def create_bundle(profile, tenant_id, client_id, client_secret, label, description=None):
+    if description is None:
+        description = label
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
+    body = {
+        "label": f"{label}",
+        "description": f"{description}",
+        "includes": {
+            "entitlements": [],
+            "meters": [],
+            "credits": [],
+            "bundles": []
+        },
+        "auto_assign": "none"
+    }
+
+    cookies = {}
+
+    do_post_admin(f'/v3/bundles', body, cookies, tenant_id, client_id, client_secret)
+
+
+@click.command(help="List all bundles")
 @admin_api_command
 def list_bundles(profile, tenant_id, client_id, client_secret):
     tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, "/v3/bundles")
 
 
-@click.command()
+@click.command(help="Get the specified bundle")
 @admin_api_command
 @click.argument('bundle-id')
 def get_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
     tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
     do_get_admin(tenant_id, client_id, client_secret, f"/v3/bundles/{bundle_id}")
+
+
+@click.command(help="Update a bundle")
+@admin_api_command
+@click.option('-l', '--label', required=True, help='The label of the bundle')
+@click.option('-d', '--description', required=True, help='The description of the bundle')
+@click.argument('bundle-id')
+def update_bundle(profile, tenant_id, client_id, client_secret, label, description, bundle_id):
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
+    body = {
+        "label": f"{label}",
+        "description": f"{description}",
+        "includes": {
+            "entitlements": [],
+            "meters": [],
+            "credits": [],
+            "bundles": []
+        },
+        "auto_assign": "none"
+    }
+
+    do_put(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret, path=f'/v3/bundles/{bundle_id}',
+           body=body)
+
+
+@click.command(help="Delete the specified bundle")
+@admin_api_command
+@click.argument('bundle-id')
+def delete_bundle(profile, tenant_id, client_id, client_secret, bundle_id):
+    tenant_id, client_id, client_secret = parse_credential_options(profile, tenant_id, client_id, client_secret)
+    do_delete_admin(tenant_id, client_id, client_secret, f"/v3/bundles/{bundle_id}")
 
 
 def parse_single_credential_option(profile=None, tenant_id=None):
@@ -767,52 +827,24 @@ def public():
 
 
 # Add admin API subcommands to the admin group
-admin.add_command(login)
-admin.add_command(logout)
-admin.add_command(list_products)
-admin.add_command(list_users)
-admin.add_command(create_user)
-admin.add_command(list_user_sessions)
-admin.add_command(set_user_session_limit)
-admin.add_command(get_user)
-admin.add_command(create_session)
-admin.add_command(get_user_grants)
-admin.add_command(get_user_grant)
-admin.add_command(create_user_grant)
-admin.add_command(delete_user_grant)
-admin.add_command(list_account_users)
-admin.add_command(list_user_accounts)
-admin.add_command(add_user_to_account)
-admin.add_command(remove_user_from_account)
-admin.add_command(delete_user)
-admin.add_command(list_schema_users)
-admin.add_command(list_unclaimed_gifts)
-admin.add_command(list_request_rules)
-admin.add_command(list_accounts)
-admin.add_command(get_account)
-admin.add_command(list_feature_rules)
-admin.add_command(list_companies)
-admin.add_command(get_company)
-admin.add_command(delete_company)
-admin.add_command(list_meters)
-admin.add_command(list_static)
-admin.add_command(list_webhooks)
-admin.add_command(list_schema_users)
-admin.add_command(list_cache_configurations)
-admin.add_command(get_configuration)
-admin.add_command(list_credits)
-admin.add_command(list_entitlements)
-admin.add_command(list_bundles)
-admin.add_command(get_bundle)
+admin_commands = [
+    login, logout, list_products, list_users, create_user, list_user_sessions, set_user_session_limit, get_user,
+    create_session, get_user_grants, get_user_grant, create_user_grant, delete_user_grant, list_account_users,
+    list_user_accounts, add_user_to_account, remove_user_from_account, delete_user, list_schema_users,
+    list_unclaimed_gifts, list_request_rules, list_accounts, get_account, list_feature_rules, list_companies,
+    get_company, delete_company, list_meters, list_static, list_webhooks, list_schema_users, list_cache_configurations,
+    get_configuration, list_credits, list_entitlements, create_bundle, list_bundles, get_bundle, update_bundle,
+    delete_bundle
+]
+for command in admin_commands:
+    admin.add_command(command)
 
-public.add_command(register_user)
-public.add_command(decide)
-public.add_command(delete_other_sessions)
-public.add_command(delete_session)
-public.add_command(list_rules)
-public.add_command(list_sessions)
+# Add public API subcommands to the public group
+public_commands = [register_user, decide, delete_other_sessions, delete_session, list_rules, list_sessions]
+for command in public_commands:
+    public.add_command(command)
 
-# Add subcommands to CLI root
+# Add group subcommands to CLI root
 cli.add_command(admin)
 cli.add_command(public)
 

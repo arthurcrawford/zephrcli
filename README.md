@@ -24,7 +24,7 @@ zephr --help
 `zephrcli` subcommands are grouped into either `zephr admin`, requiring API keys, or `zephr public`, which just 
 require the tenant ID.
 
-## Authentication
+# Authentication
 
 The `admin login` command stores an API key and secret encrypted in the keychain, under a named profile.
 ```bash
@@ -96,7 +96,6 @@ zephr public list-rules --profile dev -s ac-test-site -r sdk | jq -r '.[].id'
 ```bash
 zephr admin list-users --profile dev | jq -r '.results[].identifiers.email_address'
 ```
-_(TODO paging implementation required)_
 #### List product IDs
 ```bash
 zephr admin list-products --profile dev | jq -r '.results[].id'
@@ -115,3 +114,4 @@ The first part of the above command lists all SDK features for a site
 using `jq` to extract just the slug IDs.  The second half of the command
 sends all these IDs to Zephr to get a decision on each.
 
+# Packaging
