@@ -115,3 +115,7 @@ using `jq` to extract just the slug IDs.  The second half of the command
 sends all these IDs to Zephr to get a decision on each.
 
 # Packaging
+```bash
+# Tag a version
+VERSION=$(cat src/zephrcli/VERSION); git tag -a $VERSION -m "version bump"; git push origin --tags
+```
